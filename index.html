@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Lowongan Kerja</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <style>
+        body {
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 1200px;
+        }
+        .card {
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .job-card {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .job-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">
+            <i class="fas fa-briefcase"></i> Sistem Pengelolaan Lowongan Kerja
+        </h1>
+        
+        <!-- Form Pencarian -->
+        <div class="card">
+            <div class="card-body">
+                <div class="input-group">
+                    <input type="text" id="searchInput" class="form-control" placeholder="Cari lowongan kerja...">
+                    <div class="input-group-append">
+                        <button class="btn btn-primary" onclick="searchJobs()">
+                            <i class="fas fa-search"></i> Cari
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadJobs()">
+                            <i class="fas fa-sync"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Tombol Tambah Lowongan -->
+        <div class="text-right mb-3">
+            <button class="btn btn-success" data-toggle="modal" data-target="#jobModal" onclick="resetForm()">
+                <i class="fas fa-plus"></i> Tambah Lowongan
+            </button>
+        </div>
+        
+        <!-- Daftar Lowongan Kerja -->
+        <div id="jobsList" class="row"></div>
+    </div>
+    
+    <!-- Modal Form -->
+    <div class="modal fade" id="jobModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalTitle">Tambah Lowongan Kerja</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <form id="jobForm">
+                        <input type="hidden" id="jobId">
+                        <div class="form-group">
+                            <label>Posisi:</label>
+                            <input type="text" id="posisi" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Perusahaan:</label>
+                            <input type="text" id="perusahaan" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Lokasi:</label>
+                            <input type="text" id="lokasi" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Gaji:</label>
+                            <input type="text" id="gaji" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Deskripsi:</label>
+                            <textarea id="deskripsi" class="form-control" rows="4" required></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-primary" onclick="saveJob()">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        
+        const script_url = "https://script.google.com/a/macros/uniku.ac.id/s/AKfycbxKibxG-6aP_Sp7W5nHuG9VHL8KPYWCKUk6FmjhZyKOziuHmwDaXuCVj6lkzGdgwqBjCg/exec";
+        
+        
+        $(document).ready(function() {
+            loadJobs();
+        });
+        
+        
+        function loadJobs() {
+            $.ajax({
+                url: script_url,
+                type: "GET",
+                data: { action: "read" },
+                dataType: "json",
+                success: function(response) {
+                    displayJobs(response.data);
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    alert("Error: " + textStatus);
+                }
+            });
+        }
+        
+        
+        function displayJobs(jobs) {
+            const jobsList = $('#jobsList');
+            jobsList.empty();
+            
+            if (jobs.length === 0) {
+                jobsList.html('<div class="col-12"><p class="text-center">Tidak ada lowongan kerja</p></div>');
+                return;
+            }
+            
+            jobs.forEach(function(job) {
+                const card = `
+                    <div class="col-md-6 col-lg-4">
+                        <div class="card job-card">
+                            <div class="card-body">
+                                <h5 class="card-title">${job.Posisi}</h5>
+                                <h6 class="card-subtitle mb-2 text-muted">${job.Perusahaan}</h6>
+                                <p class="card-text">
+                                    <i class="fas fa-map-marker-alt"></i> ${job.Lokasi}<br>
+                                    <i class="fas fa-money-bill-wave"></i> ${job.Gaji}
+                                </p>
+                                <p class="card-text"><small>${job.Deskripsi.substring(0, 100)}...</small></p>
+                                <div class="btn-group btn-group-sm">
+                                    <button class="btn btn-info" onclick='viewJob(${JSON.stringify(job)})'>Detail</button>
+                                    <button class="btn btn-warning" onclick='editJob(${JSON.stringify(job)})'>Edit</button>
+                                    <button class="btn btn-danger" onclick="deleteJob('${job.ID}')">Hapus</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                jobsList.append(card);
+            });
+        }
+        
+        
+        function resetForm() {
+            $('#jobForm')[0].reset();
+            $('#jobId').val('');
+            $('#modalTitle').text('Tambah Lowongan Kerja');
+        }
+        
+        
+        function saveJob() {
+            const id = $('#jobId').val();
+            const action = id ? 'update' : 'insert';
+            
+            const data = {
+                action: action,
+                id: id || Date.now().toString(),
+                posisi: $('#posisi').val(),
+                perusahaan: $('#perusahaan').val(),
+                lokasi: $('#lokasi').val(),
+                gaji: $('#gaji').val(),
+                deskripsi: $('#deskripsi').val()
+            };
+            
+            $.ajax({
+                url: script_url,
+                type: "GET",
+                data: data,
+                dataType: "jsonp",
+                success: function(response) {
+                    alert(response.message);
+                    $('#jobModal').modal('hide');
+                    loadJobs();
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    alert("Error: " + textStatus);
+                }
+            });
+        }
+        
+        
+        function editJob(job) {
+            $('#jobId').val(job.ID);
+            $('#posisi').val(job.Posisi);
+            $('#perusahaan').val(job.Perusahaan);
+            $('#lokasi').val(job.Lokasi);
+            $('#gaji').val(job.Gaji);
+            $('#deskripsi').val(job.Deskripsi);
+            $('#modalTitle').text('Edit Lowongan Kerja');
+            $('#jobModal').modal('show');
+        }
+        
+        
+        function deleteJob(id) {
+            if (confirm('Yakin ingin menghapus lowongan ini?')) {
+                $.ajax({
+                    url: script_url,
+                    type: "GET",
+                    data: { action: "delete", id: id },
+                    dataType: "jsonp",
+                    success: function(response) {
+                        alert(response.message);
+                        loadJobs();
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        alert("Error: " + textStatus);
+                    }
+                });
+            }
+        }
+        
+        
+        function searchJobs() {
+            const term = $('#searchInput').val();
+            if (term) {
+                $.ajax({
+                    url: script_url,
+                    type: "GET",
+                    data: { action: "search", term: term },
+                    dataType: "json",
+                    success: function(response) {
+                        displayJobs(response.data);
+                    },
+                    error: function(jqXHR, textStatus, errorThrown) {
+                        alert("Error: " + textStatus);
+                    }
+                });
+            } else {
+                loadJobs();
+            }
+        }
+        
+        
+        function viewJob(job) {
+            alert(`Posisi: ${job.Posisi}\nPerusahaan: ${job.Perusahaan}\nLokasi: ${job.Lokasi}\nGaji: ${job.Gaji}\n\nDeskripsi:\n${job.Deskripsi}`);
+        }
+    </script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+</body>
+</html>

@@ -1,0 +1,176 @@
+function doGet(e) {
+  var op = e.parameter.action;
+  
+  if (op == "read")
+    return read();
+  else if (op == "search")
+    return search(e);
+  else
+    return ContentService.createTextOutput(JSON.stringify({
+      "result": "error",
+      "message": "Invalid action"
+    })).setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  var op = e.parameter.action;
+  
+  if (op == "insert")
+    return insert_value(e);
+  else if (op == "update")
+    return update_value(e);
+  else if (op == "delete")
+    return delete_value(e);
+  else
+    return ContentService.createTextOutput(JSON.stringify({
+      "result": "error",
+      "message": "Invalid action"
+    })).setMimeType(ContentService.MimeType.JSON);
+}
+
+
+function read() {
+  var wb = SpreadsheetApp.getActiveSpreadsheet();
+  var ws = wb.getSheetByName('LowonganKerja');
+  var data = [];
+  
+  var sh = ws.getRange(1, 1, 1, ws.getLastColumn()).getValues()[0];
+  var dt = ws.getRange(2, 1, ws.getLastRow() - 1, ws.getLastColumn()).getValues();
+  
+  for (var r = 0; r < dt.length; r++) {
+    var row = dt[r];
+    var record = {};
+    for (var p in sh) {
+      record[sh[p]] = row[p];
+    }
+    data.push(record);
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    "result": "success",
+    "data": data
+  })).setMimeType(ContentService.MimeType.JSON);
+}
+
+
+function insert_value(request) {
+  var wb = SpreadsheetApp.getActiveSpreadsheet();
+  var ws = wb.getSheetByName('LowonganKerja');
+  
+  var id = request.parameter.id;
+  var posisi = request.parameter.posisi;
+  var perusahaan = request.parameter.perusahaan;
+  var lokasi = request.parameter.lokasi;
+  var gaji = request.parameter.gaji;
+  var deskripsi = request.parameter.deskripsi;
+  
+  var rowData = ws.appendRow([id, posisi, perusahaan, lokasi, gaji, deskripsi]);
+  var result = "Data lowongan berhasil ditambahkan";
+  
+  result = JSON.stringify({
+    "result": "success",
+    "message": result
+  });
+  
+  return ContentService
+    .createTextOutput(request.parameter.callback + "(" + result + ")")
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+
+function update_value(request) {
+  var wb = SpreadsheetApp.getActiveSpreadsheet();
+  var ws = wb.getSheetByName('LowonganKerja');
+  
+  var id = request.parameter.id;
+  var posisi = request.parameter.posisi;
+  var perusahaan = request.parameter.perusahaan;
+  var lokasi = request.parameter.lokasi;
+  var gaji = request.parameter.gaji;
+  var deskripsi = request.parameter.deskripsi;
+  
+  var data = ws.getRange(2, 1, ws.getLastRow() - 1, 1).getValues();
+  var idList = data.map(function(r) { return r[0].toString(); });
+  var position = idList.indexOf(id);
+  
+  if (position > -1) {
+    ws.getRange(position + 2, 2).setValue(posisi);
+    ws.getRange(position + 2, 3).setValue(perusahaan);
+    ws.getRange(position + 2, 4).setValue(lokasi);
+    ws.getRange(position + 2, 5).setValue(gaji);
+    ws.getRange(position + 2, 6).setValue(deskripsi);
+    
+    var result = "Data lowongan berhasil diperbarui";
+  } else {
+    var result = "ID tidak ditemukan";
+  }
+  
+  result = JSON.stringify({
+    "result": position > -1 ? "success" : "error",
+    "message": result
+  });
+  
+  return ContentService
+    .createTextOutput(request.parameter.callback + "(" + result + ")")
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+
+function delete_value(request) {
+  var wb = SpreadsheetApp.getActiveSpreadsheet();
+  var ws = wb.getSheetByName('LowonganKerja');
+  
+  var id = request.parameter.id;
+  var data = ws.getRange(2, 1, ws.getLastRow() - 1, 1).getValues();
+  var idList = data.map(function(r) { return r[0].toString(); });
+  var position = idList.indexOf(id);
+  
+  if (position > -1) {
+    ws.deleteRow(position + 2);
+    var result = "Data lowongan berhasil dihapus";
+  } else {
+    var result = "ID tidak ditemukan";
+  }
+  
+  result = JSON.stringify({
+    "result": position > -1 ? "success" : "error",
+    "message": result
+  });
+  
+  return ContentService
+    .createTextOutput(request.parameter.callback + "(" + result + ")")
+    .setMimeType(ContentService.MimeType.JAVASCRIPT);
+}
+
+
+function search(e) {
+  var wb = SpreadsheetApp.getActiveSpreadsheet();
+  var ws = wb.getSheetByName('LowonganKerja');
+  var searchTerm = e.parameter.term.toLowerCase();
+  var data = [];
+  
+  var sh = ws.getRange(1, 1, 1, ws.getLastColumn()).getValues()[0];
+  var dt = ws.getRange(2, 1, ws.getLastRow() - 1, ws.getLastColumn()).getValues();
+  
+  for (var r = 0; r < dt.length; r++) {
+    var row = dt[r];
+    var record = {};
+    var match = false;
+    
+    for (var p in sh) {
+      record[sh[p]] = row[p];
+      if (row[p].toString().toLowerCase().indexOf(searchTerm) > -1) {
+        match = true;
+      }
+    }
+    
+    if (match) {
+      data.push(record);
+    }
+  }
+  
+  return ContentService.createTextOutput(JSON.stringify({
+    "result": "success",
+    "data": data
+  })).setMimeType(ContentService.MimeType.JSON);
+}
